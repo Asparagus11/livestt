@@ -84,7 +84,9 @@ async def get_config():
         "vadThreshold": runtime_params["vad_threshold"],
         "minSpeechDuration": runtime_params["min_speech_duration_ms"],
         "minSilenceDuration": runtime_params["min_silence_duration_ms"],
-        "conditionOnPreviousText": runtime_params["condition_on_previous_text"]
+        "conditionOnPreviousText": runtime_params["condition_on_previous_text"],
+        "llmProvider": config.LLM_PROVIDER,
+        "llmModel": config.OPENAI_MODEL if config.LLM_PROVIDER == "openai" else config.LLM_MODEL
     }
 
 @app.post("/config")

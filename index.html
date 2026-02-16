@@ -55,6 +55,7 @@
     
     <div class="settings">
         <h3 data-i18n="settingsTitle">Einstellungen</h3>
+        <span style="float: right; color: #999; font-size: 12px; margin-top: -25px;" id="llmInfo"></span>
         <label data-i18n="modelLabel">Whisper Modell:<span class="help-icon" data-i18n-title="modelHelp">?</span></label>
         <select id="modelSelect">
             <option value="tiny" data-i18n="modelTiny">Tiny (schnell, ungenau)</option>
@@ -66,7 +67,7 @@
         <input type="number" id="beamSize" value="5" min="1" max="10"><br>
         <label data-i18n="audioLengthLabel">Audio-Länge (Sek):<span class="help-icon" data-i18n-title="audioLengthHelp">?</span></label>
         <input type="number" id="minAudioLength" value="6" min="2" max="15" step="0.5"><br>
-        <label data-i18n="languageLabel">Sprache:<span class="help-icon" data-i18n-title="languageHelp">?</span></label>
+        <label data-i18n="languageLabel">Language / Translation:<span class="help-icon" data-i18n-title="languageHelp">?</span></label>
         <select id="languageSelect">
             <option value="de">Deutsch</option>
             <option value="en">English</option>
@@ -143,7 +144,7 @@
                 modelMedium: "Medium (sehr gut, langsam)",
                 beamSizeLabel: "Beam Size:",
                 audioLengthLabel: "Audio-Länge (Sek):",
-                languageLabel: "Sprache:",
+                languageLabel: "Language / Translation:",
                 advancedToggle: "▶ Erweiterte Einstellungen",
                 advancedToggleOpen: "▼ Erweiterte Einstellungen",
                 temperatureLabel: "Temperature:",
@@ -168,7 +169,7 @@
                 modelHelp: "Tiny: Sehr schnell, ungenau (~40MB)\nBase: Schnell, ausgewogen (~150MB)\nSmall: Gut, etwas langsam (~500MB)\nMedium: Sehr gut, langsam (~1.5GB)",
                 beamSizeHelp: "Höhere Werte = bessere Qualität, aber langsamer\n1 = schnell, ungenau\n5 = guter Kompromiss\n10 = beste Qualität, sehr langsam",
                 audioLengthHelp: "Wie viel Audio gesammelt wird, bevor transkribiert wird\nKürzer = schnellere Reaktion, schlechtere Interpunktion\nLänger = besserer Kontext, bessere Interpunktion\nEmpfohlen: 5-8 Sekunden",
-                languageHelp: "Sprache des zu transkribierenden Audios",
+                languageHelp: "Sprache für Transkription/Übersetzung\nWenn gesetzt: Audio wird in dieser Sprache ausgegeben\n(z.B. Englisch → Deutsch bei 'de')\nFür Auto-Erkennung ohne Übersetzung: Sprache des Audios wählen",
                 temperatureHelp: "0.0 = deterministisch, höher = kreativer (aber ungenauer)",
                 bestOfHelp: "Anzahl der Kandidaten für beste Transkription",
                 vadThresholdHelp: "Voice Activity Detection Schwellwert (0-1)\nNiedriger = mehr Audio wird als Sprache erkannt",
@@ -188,7 +189,7 @@
                 modelMedium: "Medium (very good, slow)",
                 beamSizeLabel: "Beam Size:",
                 audioLengthLabel: "Audio Length (sec):",
-                languageLabel: "Language:",
+                languageLabel: "Language / Translation:",
                 advancedToggle: "▶ Advanced Settings",
                 advancedToggleOpen: "▼ Advanced Settings",
                 temperatureLabel: "Temperature:",
@@ -213,7 +214,7 @@
                 modelHelp: "Tiny: Very fast, inaccurate (~40MB)\nBase: Fast, balanced (~150MB)\nSmall: Good, somewhat slow (~500MB)\nMedium: Very good, slow (~1.5GB)",
                 beamSizeHelp: "Higher values = better quality, but slower\n1 = fast, inaccurate\n5 = good compromise\n10 = best quality, very slow",
                 audioLengthHelp: "How much audio is collected before transcription\nShorter = faster response, worse punctuation\nLonger = better context, better punctuation\nRecommended: 5-8 seconds",
-                languageHelp: "Language of the audio to transcribe",
+                languageHelp: "Language for transcription/translation\nIf set: Audio will be output in this language\n(e.g. German → English with 'en')\nFor auto-detection without translation: Select audio's language",
                 temperatureHelp: "0.0 = deterministic, higher = more creative (but less accurate)",
                 bestOfHelp: "Number of candidates for best transcription",
                 vadThresholdHelp: "Voice Activity Detection threshold (0-1)\nLower = more audio detected as speech",
@@ -233,7 +234,7 @@
                 modelMedium: "Medium (très bon, lent)",
                 beamSizeLabel: "Beam Size:",
                 audioLengthLabel: "Longueur audio (sec):",
-                languageLabel: "Langue:",
+                languageLabel: "Language / Translation:",
                 advancedToggle: "▶ Paramètres avancés",
                 advancedToggleOpen: "▼ Paramètres avancés",
                 temperatureLabel: "Temperature:",
@@ -258,7 +259,7 @@
                 modelHelp: "Tiny: Très rapide, imprécis (~40MB)\nBase: Rapide, équilibré (~150MB)\nSmall: Bon, un peu lent (~500MB)\nMedium: Très bon, lent (~1.5GB)",
                 beamSizeHelp: "Valeurs plus élevées = meilleure qualité, mais plus lent\n1 = rapide, imprécis\n5 = bon compromis\n10 = meilleure qualité, très lent",
                 audioLengthHelp: "Quantité d'audio collectée avant transcription\nPlus court = réponse plus rapide, ponctuation moins bonne\nPlus long = meilleur contexte, meilleure ponctuation\nRecommandé: 5-8 secondes",
-                languageHelp: "Langue de l'audio à transcrire",
+                languageHelp: "Langue pour transcription/traduction\nSi défini: L'audio sera transcrit dans cette langue\n(ex: Anglais → Français avec 'fr')\nPour détection auto sans traduction: Sélectionner la langue de l'audio",
                 temperatureHelp: "0.0 = déterministe, plus élevé = plus créatif (mais moins précis)",
                 bestOfHelp: "Nombre de candidats pour la meilleure transcription",
                 vadThresholdHelp: "Seuil de détection d'activité vocale (0-1)\nPlus bas = plus d'audio détecté comme parole",
@@ -375,6 +376,9 @@
             document.getElementById('minSpeechDuration').value = config.minSpeechDuration;
             document.getElementById('minSilenceDuration').value = config.minSilenceDuration;
             document.getElementById('conditionOnPreviousText').checked = config.conditionOnPreviousText;
+            if (config.llmProvider && config.llmModel) {
+                document.getElementById('llmInfo').textContent = `LLM: ${config.llmProvider}/${config.llmModel}`;
+            }
         }
 
         loadConfig();
