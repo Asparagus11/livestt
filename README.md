@@ -6,6 +6,10 @@
 
 A modern, multilingual speech-to-text application powered by OpenAI's Whisper model with real-time transcription, LLM-based text correction, and a user-friendly web interface.
 
+<p align="center">
+  <img src="Screenshot.png" alt="LiveSTT Application" width="80%">
+</p>
+
 ## ✨ Features
 
 - 🎤 **Real-time Transcription** - Live audio recording with instant transcription
