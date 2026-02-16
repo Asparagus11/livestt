@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">Speech-to-Text</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; position: relative; }
+        .lang-selector { position: absolute; top: 10px; right: 10px; }
+        .lang-selector select { padding: 5px; }
+        #transcription { border: 1px solid #ccc; padding: 15px; min-height: 300px; margin: 20px 0; background: #f9f9f9; white-space: pre-wrap; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+        #status { color: #666; margin: 10px 0; }
+        .recording { color: red; }
+        .btn-group { margin: 10px 0; }
+        .settings { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .settings label { display: inline-block; width: 200px; margin: 5px 0; }
+        .settings input, .settings select { width: 150px; padding: 5px; }
+        .help-icon { display: inline-block; width: 18px; height: 18px; background: #666; color: white; border-radius: 50%; text-align: center; line-height: 18px; font-size: 12px; cursor: help; margin-left: 5px; }
+        .help-icon:hover { background: #333; }
+        .upload-section { background: #e8f4f8; padding: 15px; margin: 10px 0; border-radius: 5px; border: 2px dashed #4a90e2; }
+        #fileInput { padding: 5px; }
+        .archive-section { display: flex; gap: 20px; margin-top: 30px; }
+        .file-list { flex: 1; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; max-height: 400px; overflow-y: auto; }
+        .file-list h3 { margin-top: 0; }
+        .file-item { padding: 8px; margin: 5px 0; background: white; border: 1px solid #ddd; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .file-item:hover { background: #e8f4f8; }
+        .file-item.active { background: #4a90e2; color: white; }
+        .delete-btn { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .delete-btn:hover { background: #c82333; }
+        .file-content { flex: 1; border: 1px solid #ccc; padding: 15px; background: #fff; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .advanced-settings { display: none; margin-top: 10px; padding: 10px; background: #e8e8e8; border-radius: 5px; }
+        .advanced-toggle { cursor: pointer; color: #4a90e2; text-decoration: underline; margin: 10px 0; display: inline-block; }
+        .suffix-input { margin: 10px 0; }
+        .suffix-input label { display: inline-block; width: 150px; }
+        .suffix-input input { width: 300px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <div class="lang-selector">
+        <select id="langSelect">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="title">Speech-to-Text (Whisper)</h1>
+    
+    <div class="upload-section">
+        <h3 data-i18n="uploadTitle">📁 Audio-Datei hochladen</h3>
+        <input type="file" id="fileInput" accept=".wav,.mp3,.m4a,.ogg,.flac">
+        <button id="uploadBtn" data-i18n="uploadBtn">Datei transkribieren</button>
+    </div>
+    
+    <div class="settings">
+        <h3 data-i18n="settingsTitle">Einstellungen</h3>
+        <label data-i18n="modelLabel">Whisper Modell:<span class="help-icon" data-i18n-title="modelHelp">?</span></label>
+        <select id="modelSelect">
+            <option value="tiny" data-i18n="modelTiny">Tiny (schnell, ungenau)</option>
+            <option value="base" selected data-i18n="modelBase">Base (ausgewogen)</option>
+            <option value="small" data-i18n="modelSmall">Small (gut)</option>
+            <option value="medium" data-i18n="modelMedium">Medium (sehr gut, langsam)</option>
+        </select><br>
+        <label data-i18n="beamSizeLabel">Beam Size:<span class="help-icon" data-i18n-title="beamSizeHelp">?</span></label>
+        <input type="number" id="beamSize" value="5" min="1" max="10"><br>
+        <label data-i18n="audioLengthLabel">Audio-Länge (Sek):<span class="help-icon" data-i18n-title="audioLengthHelp">?</span></label>
+        <input type="number" id="minAudioLength" value="6" min="2" max="15" step="0.5"><br>
+        <label data-i18n="languageLabel">Sprache:<span class="help-icon" data-i18n-title="languageHelp">?</span></label>
+        <select id="languageSelect">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Português</option>
+            <option value="nl">Nederlands</option>
+            <option value="pl">Polski</option>
+            <option value="ru">Русский</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+        </select><br>
+        
+        <span class="advanced-toggle" data-i18n="advancedToggle" onclick="toggleAdvanced()">▶ Erweiterte Einstellungen</span>
+        <div class="advanced-settings" id="advancedSettings">
+            <label data-i18n="temperatureLabel">Temperature:<span class="help-icon" data-i18n-title="temperatureHelp">?</span></label>
+            <input type="number" id="temperature" value="0.0" min="0" max="1" step="0.1"><br>
+            <label data-i18n="bestOfLabel">Best Of:<span class="help-icon" data-i18n-title="bestOfHelp">?</span></label>
+            <input type="number" id="bestOf" value="5" min="1" max="10"><br>
+            <label data-i18n="vadThresholdLabel">VAD Threshold:<span class="help-icon" data-i18n-title="vadThresholdHelp">?</span></label>
+            <input type="number" id="vadThreshold" value="0.5" min="0" max="1" step="0.1"><br>
+            <label data-i18n="minSpeechLabel">Min Speech (ms):<span class="help-icon" data-i18n-title="minSpeechHelp">?</span></label>
+            <input type="number" id="minSpeechDuration" value="250" min="50" max="1000" step="50"><br>
+            <label data-i18n="minSilenceLabel">Min Silence (ms):<span class="help-icon" data-i18n-title="minSilenceHelp">?</span></label>
+            <input type="number" id="minSilenceDuration" value="500" min="100" max="2000" step="100"><br>
+            <label data-i18n="conditionLabel">Condition on Previous:<span class="help-icon" data-i18n-title="conditionHelp">?</span></label>
+            <input type="checkbox" id="conditionOnPreviousText" checked><br>
+        </div>
+        
+        <button id="applySettings" data-i18n="applyBtn">Einstellungen übernehmen</button>
+    </div>
+    
+    <div class="suffix-input">
+        <label data-i18n="suffixLabel">Dateiname-Suffix:</label>
+        <input type="text" id="filenameSuffix" placeholder="z.B. meeting_notes">
+    </div>
+    
+    <div id="status" data-i18n="statusReady">Bereit</div>
+    <div class="btn-group">
+        <button id="startBtn" data-i18n="startBtn">Aufnahme starten</button>
+        <button id="stopBtn" disabled data-i18n="stopBtn">Aufnahme stoppen</button>
+    </div>
+    <div class="btn-group">
+        <button id="clearBtn" data-i18n="clearBtn">Text löschen</button>
+        <button id="copyBtn" data-i18n="copyBtn">In Zwischenspeicher kopieren</button>
+        <button id="correctBtn" data-i18n="correctBtn">Mit LLM korrigieren</button>
+        <button id="saveBtn" data-i18n="saveBtn">In Datei speichern</button>
+    </div>
+    <div id="transcription"></div>
+
+    <div class="archive-section">
+        <div class="file-list">
+            <h3 data-i18n="archiveTitle">📁 Gespeicherte Transkriptionen</h3>
+            <div id="fileListContainer" data-i18n="loading">Lade...</div>
+        </div>
+        <div class="file-content" id="fileContentDisplay">
+            <em data-i18n="selectFile">Wähle eine Datei aus der Liste</em>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            de: {
+                title: "LiveSTT - Spracherkennung (mit Fast-Whisper)",
+                uploadTitle: "📁 Audio-Datei hochladen",
+                uploadBtn: "Datei transkribieren",
+                settingsTitle: "Einstellungen",
+                modelLabel: "Whisper Modell:",
+                modelTiny: "Tiny (schnell, ungenau)",
+                modelBase: "Base (ausgewogen)",
+                modelSmall: "Small (gut)",
+                modelMedium: "Medium (sehr gut, langsam)",
+                beamSizeLabel: "Beam Size:",
+                audioLengthLabel: "Audio-Länge (Sek):",
+                languageLabel: "Sprache:",
+                advancedToggle: "▶ Erweiterte Einstellungen",
+                advancedToggleOpen: "▼ Erweiterte Einstellungen",
+                temperatureLabel: "Temperature:",
+                bestOfLabel: "Best Of:",
+                vadThresholdLabel: "VAD Threshold:",
+                minSpeechLabel: "Min Speech (ms):",
+                minSilenceLabel: "Min Silence (ms):",
+                conditionLabel: "Condition on Previous:",
+                applyBtn: "Einstellungen übernehmen",
+                suffixLabel: "Dateiname-Suffix:",
+                statusReady: "Bereit",
+                startBtn: "Aufnahme starten",
+                stopBtn: "Aufnahme stoppen",
+                clearBtn: "Text löschen",
+                copyBtn: "In Zwischenspeicher kopieren",
+                correctBtn: "Mit LLM korrigieren",
+                saveBtn: "In Datei speichern",
+                archiveTitle: "📁 Gespeicherte Transkriptionen",
+                loading: "Lade...",
+                selectFile: "Wähle eine Datei aus der Liste",
+                deleteBtn: "Löschen",
+                modelHelp: "Tiny: Sehr schnell, ungenau (~40MB)\nBase: Schnell, ausgewogen (~150MB)\nSmall: Gut, etwas langsam (~500MB)\nMedium: Sehr gut, langsam (~1.5GB)",
+                beamSizeHelp: "Höhere Werte = bessere Qualität, aber langsamer\n1 = schnell, ungenau\n5 = guter Kompromiss\n10 = beste Qualität, sehr langsam",
+                audioLengthHelp: "Wie viel Audio gesammelt wird, bevor transkribiert wird\nKürzer = schnellere Reaktion, schlechtere Interpunktion\nLänger = besserer Kontext, bessere Interpunktion\nEmpfohlen: 5-8 Sekunden",
+                languageHelp: "Sprache des zu transkribierenden Audios",
+                temperatureHelp: "0.0 = deterministisch, höher = kreativer (aber ungenauer)",
+                bestOfHelp: "Anzahl der Kandidaten für beste Transkription",
+                vadThresholdHelp: "Voice Activity Detection Schwellwert (0-1)\nNiedriger = mehr Audio wird als Sprache erkannt",
+                minSpeechHelp: "Minimale Sprachdauer in Millisekunden",
+                minSilenceHelp: "Minimale Stille-Dauer in Millisekunden",
+                conditionHelp: "Nutzt vorherigen Text als Kontext für bessere Transkription"
+            },
+            en: {
+                title: "LiveSTT - Speech Recognition (with Fast-Whisper)",
+                uploadTitle: "📁 Upload Audio File",
+                uploadBtn: "Transcribe File",
+                settingsTitle: "Settings",
+                modelLabel: "Whisper Model:",
+                modelTiny: "Tiny (fast, inaccurate)",
+                modelBase: "Base (balanced)",
+                modelSmall: "Small (good)",
+                modelMedium: "Medium (very good, slow)",
+                beamSizeLabel: "Beam Size:",
+                audioLengthLabel: "Audio Length (sec):",
+                languageLabel: "Language:",
+                advancedToggle: "▶ Advanced Settings",
+                advancedToggleOpen: "▼ Advanced Settings",
+                temperatureLabel: "Temperature:",
+                bestOfLabel: "Best Of:",
+                vadThresholdLabel: "VAD Threshold:",
+                minSpeechLabel: "Min Speech (ms):",
+                minSilenceLabel: "Min Silence (ms):",
+                conditionLabel: "Condition on Previous:",
+                applyBtn: "Apply Settings",
+                suffixLabel: "Filename Suffix:",
+                statusReady: "Ready",
+                startBtn: "Start Recording",
+                stopBtn: "Stop Recording",
+                clearBtn: "Clear Text",
+                copyBtn: "Copy to Clipboard",
+                correctBtn: "Correct with LLM",
+                saveBtn: "Save to File",
+                archiveTitle: "📁 Saved Transcriptions",
+                loading: "Loading...",
+                selectFile: "Select a file from the list",
+                deleteBtn: "Delete",
+                modelHelp: "Tiny: Very fast, inaccurate (~40MB)\nBase: Fast, balanced (~150MB)\nSmall: Good, somewhat slow (~500MB)\nMedium: Very good, slow (~1.5GB)",
+                beamSizeHelp: "Higher values = better quality, but slower\n1 = fast, inaccurate\n5 = good compromise\n10 = best quality, very slow",
+                audioLengthHelp: "How much audio is collected before transcription\nShorter = faster response, worse punctuation\nLonger = better context, better punctuation\nRecommended: 5-8 seconds",
+                languageHelp: "Language of the audio to transcribe",
+                temperatureHelp: "0.0 = deterministic, higher = more creative (but less accurate)",
+                bestOfHelp: "Number of candidates for best transcription",
+                vadThresholdHelp: "Voice Activity Detection threshold (0-1)\nLower = more audio detected as speech",
+                minSpeechHelp: "Minimum speech duration in milliseconds",
+                minSilenceHelp: "Minimum silence duration in milliseconds",
+                conditionHelp: "Uses previous text as context for better transcription"
+            },
+            fr: {
+                title: "LiveSTT - Reconnaissance vocale (avec Fast-Whisper)",
+                uploadTitle: "📁 Télécharger un fichier audio",
+                uploadBtn: "Transcrire le fichier",
+                settingsTitle: "Paramètres",
+                modelLabel: "Modèle Whisper:",
+                modelTiny: "Tiny (rapide, imprécis)",
+                modelBase: "Base (équilibré)",
+                modelSmall: "Small (bon)",
+                modelMedium: "Medium (très bon, lent)",
+                beamSizeLabel: "Beam Size:",
+                audioLengthLabel: "Longueur audio (sec):",
+                languageLabel: "Langue:",
+                advancedToggle: "▶ Paramètres avancés",
+                advancedToggleOpen: "▼ Paramètres avancés",
+                temperatureLabel: "Temperature:",
+                bestOfLabel: "Best Of:",
+                vadThresholdLabel: "Seuil VAD:",
+                minSpeechLabel: "Parole min (ms):",
+                minSilenceLabel: "Silence min (ms):",
+                conditionLabel: "Condition sur précédent:",
+                applyBtn: "Appliquer les paramètres",
+                suffixLabel: "Suffixe du nom de fichier:",
+                statusReady: "Prêt",
+                startBtn: "Démarrer l'enregistrement",
+                stopBtn: "Arrêter l'enregistrement",
+                clearBtn: "Effacer le texte",
+                copyBtn: "Copier dans le presse-papiers",
+                correctBtn: "Corriger avec LLM",
+                saveBtn: "Enregistrer dans un fichier",
+                archiveTitle: "📁 Transcriptions enregistrées",
+                loading: "Chargement...",
+                selectFile: "Sélectionnez un fichier dans la liste",
+                deleteBtn: "Supprimer",
+                modelHelp: "Tiny: Très rapide, imprécis (~40MB)\nBase: Rapide, équilibré (~150MB)\nSmall: Bon, un peu lent (~500MB)\nMedium: Très bon, lent (~1.5GB)",
+                beamSizeHelp: "Valeurs plus élevées = meilleure qualité, mais plus lent\n1 = rapide, imprécis\n5 = bon compromis\n10 = meilleure qualité, très lent",
+                audioLengthHelp: "Quantité d'audio collectée avant transcription\nPlus court = réponse plus rapide, ponctuation moins bonne\nPlus long = meilleur contexte, meilleure ponctuation\nRecommandé: 5-8 secondes",
+                languageHelp: "Langue de l'audio à transcrire",
+                temperatureHelp: "0.0 = déterministe, plus élevé = plus créatif (mais moins précis)",
+                bestOfHelp: "Nombre de candidats pour la meilleure transcription",
+                vadThresholdHelp: "Seuil de détection d'activité vocale (0-1)\nPlus bas = plus d'audio détecté comme parole",
+                minSpeechHelp: "Durée minimale de parole en millisecondes",
+                minSilenceHelp: "Durée minimale de silence en millisecondes",
+                conditionHelp: "Utilise le texte précédent comme contexte pour une meilleure transcription"
+            }
+        };
+
+        let currentLang = localStorage.getItem('language') || navigator.language.split('-')[0] || 'de';
+        if (!translations[currentLang]) currentLang = 'de';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (translations[lang][key]) {
+                    if (el.tagName === 'INPUT' && el.type !== 'checkbox') {
+                        el.placeholder = translations[lang][key];
+                    } else if (el.tagName === 'LABEL') {
+                        // For labels, preserve the help icon
+                        const helpIcon = el.querySelector('.help-icon');
+                        if (helpIcon) {
+                            el.childNodes[0].textContent = translations[lang][key];
+                        } else {
+                            el.textContent = translations[lang][key];
+                        }
+                    } else {
+                        el.textContent = translations[lang][key];
+                    }
+                }
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.dataset.i18nTitle;
+                if (translations[lang][key]) {
+                    el.title = translations[lang][key];
+                }
+            });
+            localStorage.setItem('language', lang);
+        }
+
+        document.getElementById('langSelect').value = currentLang;
+        setLanguage(currentLang);
+        document.getElementById('langSelect').onchange = (e) => setLanguage(e.target.value);
+
+        function toggleAdvanced() {
+            const adv = document.getElementById('advancedSettings');
+            const toggle = document.querySelector('.advanced-toggle');
+            if (adv.style.display === 'none' || !adv.style.display) {
+                adv.style.display = 'block';
+                toggle.textContent = translations[currentLang].advancedToggleOpen;
+            } else {
+                adv.style.display = 'none';
+                toggle.textContent = translations[currentLang].advancedToggle;
+            }
+        }
+
+        let mediaRecorder;
+        let ws;
+        let config;
+
+        async function loadFileList() {
+            const response = await fetch('/files');
+            const result = await response.json();
+            const container = document.getElementById('fileListContainer');
+            
+            if (result.files.length === 0) {
+                container.innerHTML = `<em>${translations[currentLang].selectFile}</em>`;
+                return;
+            }
+            
+            container.innerHTML = result.files.map(file => 
+                `<div class="file-item" onclick="loadFileContent('${file}')">
+                    <span>${file}</span>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteFile('${file}')">${translations[currentLang].deleteBtn}</button>
+                </div>`
+            ).join('');
+        }
+
+        window.deleteFile = async function(filename) {
+            if (!confirm(`${translations[currentLang].deleteBtn} "${filename}"?`)) return;
+            
+            const response = await fetch(`/files/${filename}`, { method: 'DELETE' });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                document.getElementById('fileContentDisplay').innerHTML = `<em>${translations[currentLang].selectFile}</em>`;
+                loadFileList();
+                status.textContent = translations[currentLang].deleteBtn;
+            } else {
+                status.textContent = result.message;
+            }
+        };
+
+        window.loadFileContent = async function(filename) {
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.file-item').classList.add('active');
+            
+            const response = await fetch(`/files/${filename}`);
+            const result = await response.json();
+            document.getElementById('fileContentDisplay').textContent = result.content;
+        };
+
+        async function loadConfig() {
+            const response = await fetch('/config');
+            config = await response.json();
+            document.getElementById('modelSelect').value = config.model;
+            document.getElementById('beamSize').value = config.beamSize;
+            document.getElementById('minAudioLength').value = config.minAudioLength;
+            document.getElementById('languageSelect').value = config.language;
+            document.getElementById('temperature').value = config.temperature;
+            document.getElementById('bestOf').value = config.bestOf;
+            document.getElementById('vadThreshold').value = config.vadThreshold;
+            document.getElementById('minSpeechDuration').value = config.minSpeechDuration;
+            document.getElementById('minSilenceDuration').value = config.minSilenceDuration;
+            document.getElementById('conditionOnPreviousText').checked = config.conditionOnPreviousText;
+        }
+
+        loadConfig();
+        loadFileList();
+
+        document.getElementById('uploadBtn').onclick = async () => {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                status.textContent = 'Please select a file';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            status.textContent = 'Transcribing...';
+            transcription.textContent = '';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    transcription.textContent = result.text;
+                    status.textContent = 'Transcription complete';
+                } else {
+                    status.textContent = result.message;
+                }
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+            }
+        };
+
+        document.getElementById('applySettings').onclick = async () => {
+            const newConfig = {
+                model: document.getElementById('modelSelect').value,
+                beamSize: parseInt(document.getElementById('beamSize').value),
+                minAudioLength: parseFloat(document.getElementById('minAudioLength').value),
+                language: document.getElementById('languageSelect').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                bestOf: parseInt(document.getElementById('bestOf').value),
+                vadThreshold: parseFloat(document.getElementById('vadThreshold').value),
+                minSpeechDuration: parseInt(document.getElementById('minSpeechDuration').value),
+                minSilenceDuration: parseInt(document.getElementById('minSilenceDuration').value),
+                conditionOnPreviousText: document.getElementById('conditionOnPreviousText').checked
+            };
+            status.textContent = 'Applying settings...';
+            const response = await fetch('/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(newConfig)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                config = result.params;
+                status.textContent = 'Settings applied';
+            } else {
+                status.textContent = result.message;
+            }
+        };
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const transcription = document.getElementById('transcription');
+
+        startBtn.onclick = async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onopen = () => {
+                status.textContent = 'Recording...';
+                status.className = 'recording';
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                transcription.textContent += data.text + ' ';
+                transcription.scrollTop = transcription.scrollHeight;
+            };
+
+            const audioContext = new AudioContext({sampleRate: 16000});
+            const source = audioContext.createMediaStreamSource(stream);
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+            
+            processor.onaudioprocess = (e) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    const channelData = e.inputBuffer.getChannelData(0);
+                    const int16Array = new Int16Array(channelData.length);
+                    for (let i = 0; i < channelData.length; i++) {
+                        int16Array[i] = Math.max(-32768, Math.min(32767, channelData[i] * 32768));
+                    }
+                    ws.send(int16Array.buffer);
+                }
+            };
+
+            mediaRecorder = {stream, processor, audioContext};
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        };
+
+        stopBtn.onclick = () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('stop');
+            }
+            if (mediaRecorder.processor) {
+                mediaRecorder.processor.disconnect();
+                mediaRecorder.audioContext.close();
+            }
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            setTimeout(() => ws.close(), 1000);
+            status.textContent = 'Processing...';
+            status.className = '';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+
+        document.getElementById('clearBtn').onclick = () => {
+            transcription.textContent = '';
+            status.textContent = translations[currentLang].statusReady;
+        };
+
+        document.getElementById('copyBtn').onclick = async () => {
+            const text = transcription.textContent;
+            if (!text.trim()) {
+                status.textContent = 'No text to copy';
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                status.textContent = 'Copied to clipboard';
+            } catch (e) {
+                status.textContent = 'Copy failed: ' + e.message;
+            }
+        };
+
+        document.getElementById('correctBtn').onclick = async () => {
+            const text = transcription.textContent;
+            if (!text.trim()) {
+                status.textContent = 'No text to correct';
+                return;
+            }
+            status.textContent = 'Correcting with LLM...';
+            const response = await fetch('/correct', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                transcription.textContent = result.text;
+                status.textContent = 'Text corrected';
+            } else {
+                status.textContent = result.message;
+            }
+        };
+
+        document.getElementById('saveBtn').onclick = async () => {
+            const text = transcription.textContent;
+            const suffix = document.getElementById('filenameSuffix').value.trim();
+            if (!text.trim()) {
+                status.textContent = 'No text to save';
+                return;
+            }
+            const response = await fetch('/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text, suffix})
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                status.textContent = `Saved: ${result.filename}`;
+                loadFileList();
+            } else {
+                status.textContent = 'Save failed';
+            }
+        };
+    </script>
+</body>
+</html>

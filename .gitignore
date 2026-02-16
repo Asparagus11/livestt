@@ -1,0 +1,43 @@
+# Virtual Environment
+venv/
+
+# Transcriptions
+transcriptions/
+
+# Audio Files
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Backups
+*.backup
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Vibe
+.vibe/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
